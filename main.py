@@ -20,9 +20,9 @@ weather_file_path = [
 ]
 
 weather_file_path_local = [
-    "2019.csv.gz",
-    "2020.csv.gz",
-    "2021.csv.gz",
+    "../dataset/2019.csv.gz",
+    "../dataset/2020.csv.gz",
+    "../dataset/2021.csv.gz",
 ]
 
 ids = {
@@ -39,7 +39,6 @@ ids = {
     'CA007025251': 'Montreal'
 }
 
-
 stations = [
     'USW00094728',
     'USW00023174',
@@ -54,11 +53,19 @@ stations = [
     'CA007025251',
 ]
 
+elements = [
+    'PRCP',
+    'SNOW',
+    'SNWD',
+    'TMAX',
+    'TMIN',
+]
+
 weather_schema = types.StructType([
     types.StructField('station_id', types.StringType()),
     types.StructField('date', types.IntegerType()),
     types.StructField('element', types.StringType()),
-    types.StructField('data_value', types.IntegerType()),
+    types.StructField('data_value', types.FloatType()),
     types.StructField('m_flag', types.StringType()),
     types.StructField('q_flag', types.StringType()),
     types.StructField('s_flag', types.StringType()),
@@ -66,10 +73,12 @@ weather_schema = types.StructType([
 ])
 
 def main():
-    weather_data = spark.read.csv(weather_file_path_local, schema=weather_schema)
+    weather_data = spark.read.csv(weather_file_path, schema=weather_schema)
     ids_df = spark.createDataFrame(list(ids.items()), ["station_id", "city"])
     weather_data = weather_data.filter(
-        weather_data['station_id'].isin(stations)
+        (weather_data['station_id'].isin(stations)) &
+        (weather_data['data_value'] != 9999) &
+        (weather_data['element'].isin(elements))
     )
     weather_data = weather_data.withColumn('year', (col('date')/10000).cast('Integer')).withColumn('month', ((col('date')/100) % 100).cast('Integer')).withColumn('day', (col('date')% 100).cast('Integer'))
     
