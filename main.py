@@ -1,7 +1,7 @@
 import sys
+import matplotlib.pyplot as plt
 from pyspark.sql import SparkSession, functions, types
-from pyspark.sql.functions import udf
-from pyspark.sql.functions import col
+from pyspark.sql.functions import col, count, to_date, dayofmonth, month, year
 
 spark = SparkSession.builder.appName('GHCN data').getOrCreate()
 spark.sparkContext.setLogLevel('WARN')
@@ -34,7 +34,7 @@ ids = {
     'USW00053863': 'Atlanta',
     'USW00023234': 'San Francisco',
     'CA006158731': 'Toronto',
-    'CA001108395': 'Vancouver',
+    'CA001108380': 'Vancouver',
     'CA003031092': 'Calgary',
     'CA007025251': 'Montreal'
 }
@@ -48,7 +48,7 @@ stations = [
     'USW00053863',
     'USW00023234',
     'CA006158731',
-    'CA001108395',
+    'CA001108380',
     'CA003031092',
     'CA007025251',
 ]
@@ -60,6 +60,8 @@ elements = [
     'TMAX',
     'TMIN',
 ]
+
+cities = []
 
 weather_schema = types.StructType([
     types.StructField('station_id', types.StringType()),
@@ -73,21 +75,23 @@ weather_schema = types.StructType([
 ])
 
 def main():
-    weather_data = spark.read.csv(weather_file_path, schema=weather_schema)
+    weather_data = spark.read.csv(weather_file_path_local, schema=weather_schema)
     ids_df = spark.createDataFrame(list(ids.items()), ["station_id", "city"])
+    weather_data = weather_data.withColumn('date', to_date(weather_data.date, 'yyyyMMdd'))
+    weather_data.drop('date')
     weather_data = weather_data.filter(
         (weather_data['station_id'].isin(stations)) &
         (weather_data['data_value'] != 9999) &
         (weather_data['element'].isin(elements))
     )
-    weather_data = weather_data.withColumn('year', (col('date')/10000).cast('Integer')).withColumn('month', ((col('date')/100) % 100).cast('Integer')).withColumn('day', (col('date')% 100).cast('Integer'))
+    
+    weather_data = weather_data.withColumn('year', year(weather_data.date)).withColumn('month', month(weather_data.date)).withColumn('day', dayofmonth(weather_data.date))
     
     weather_data = weather_data.select(
         'station_id',
         'date',
         'element',
         'data_value',
-        'obs_time',
         'year',
         'month',
         'day'
@@ -96,11 +100,14 @@ def main():
     weather_data = weather_data.join(ids_df, 'station_id', how='left')
     weather_data = weather_data.cache()
     
-    
     #Show number of data for each city
-    count_data = weather_data.groupBy('city').agg({'city':'count'})
-    count_data.show()
+    # count_data = weather_data.groupBy('city').agg({'city':'count'})
+    # weather_data.show()
     
+    weather_data = weather_data.groupBy(['station_id', 'date', 'year', 'month', 'day', 'city']).pivot('element', elements).sum('data_value')
+    weather_data = weather_data.withColumn('TMAX', (weather_data.TMAX / 10)).withColumn('TMIN', (weather_data.TMIN / 10))
+    weather_data.drop('TMAX')
+    weather_data.drop('TMIN')
     
     nyc = weather_data.filter((weather_data['city'] == "New York"))
     la = weather_data.filter((weather_data['city'] == "Los Angeles"))
@@ -113,5 +120,18 @@ def main():
     vancouver = weather_data.filter((weather_data['city'] == "Vancouver"))
     calgary = weather_data.filter((weather_data['city'] == "Calgary"))
     montreal = weather_data.filter((weather_data['city'] == "Montreal"))
+    
+    """ 
+    cities = [nyc, la, boston, chicago, seattle, atlanta, sf, toronto, vancouver, calgary, montreal]
+    
+    for city in cities:
+        pdCity = city.toPandas()
+        plt.plot(pdCity['date'], pdCity['TMIN'], 'r.')
+        plt.plot(pdCity['date'], pdCity['TMAX'] , 'b.')
+        plt.legend(['TMIN', 'TMAX'])
+        plt.xlabel('Date')
+        plt.ylabel('Temperature')
+        plt.show() 
+    """
     
 main()
