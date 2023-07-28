@@ -9,6 +9,7 @@ spark.sparkContext.setLogLevel('WARN')
 assert sys.version_info >= (3, 8) # make sure we have Python 3.8+
 assert spark.version >= '3.2' # make sure we have Spark 3.2+
 
+output = 'weather-output/weather-'
 weather_file_path = [
     "/courses/datasets/ghcn/2015.csv.gz",
     "/courses/datasets/ghcn/2016.csv.gz",
@@ -66,7 +67,7 @@ weather_schema = types.StructType([
 ])
 
 def main():
-    weather_data = spark.read.csv(weather_file_path_local, schema=weather_schema)
+    weather_data = spark.read.csv(weather_file_path, schema=weather_schema)
     ids_df = spark.createDataFrame(list(ids.items()), ["station_id", "city"])
     weather_data = weather_data.filter(
         weather_data['station_id'].isin(stations)
@@ -90,7 +91,7 @@ def main():
     
     #Show number of data for each city
     count_data = weather_data.groupBy('city').agg({'city':'count'})
-    count_data.show()
+    # count_data.show()
     
     
     nyc = weather_data.filter((weather_data['city'] == "New York"))
@@ -104,5 +105,18 @@ def main():
     vancouver = weather_data.filter((weather_data['city'] == "Vancouver"))
     calgary = weather_data.filter((weather_data['city'] == "Calgary"))
     montreal = weather_data.filter((weather_data['city'] == "Montreal"))
+
+    nyc.write.json(output+"nyc", compression='gzip', mode='overwrite')
+    la.write.json(output+"la", compression='gzip', mode='overwrite')
+    boston.write.json(output+"boston", compression='gzip', mode='overwrite')
+    chicago.write.json(output+"chicago", compression='gzip', mode='overwrite')
+    seattle.write.json(output+"seattle", compression='gzip', mode='overwrite')
+    atlanta.write.json(output+"atlanta", compression='gzip', mode='overwrite')
+    sf.write.json(output+"sf", compression='gzip', mode='overwrite')
+    toronto.write.json(output+"toronto", compression='gzip', mode='overwrite')
+    vancouver.write.json(output+"vancouver", compression='gzip', mode='overwrite')
+    calgary.write.json(output+"calgary", compression='gzip', mode='overwrite')
+    montreal.write.json(output+"montreal", compression='gzip', mode='overwrite')
+
     
 main()
