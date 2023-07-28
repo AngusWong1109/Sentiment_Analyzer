@@ -1,13 +1,15 @@
 import sys
 import matplotlib.pyplot as plt
 from pyspark.sql import SparkSession, functions, types
-from pyspark.sql.functions import col, count, to_date, dayofmonth, month, year
+from pyspark.sql.functions import col, count, to_date, dayofmonth, month, year, when
 
 spark = SparkSession.builder.appName('GHCN data').getOrCreate()
 spark.sparkContext.setLogLevel('WARN')
 
 assert sys.version_info >= (3, 8) # make sure we have Python 3.8+
 assert spark.version >= '3.2' # make sure we have Spark 3.2+
+
+output = 'weather_output/weather-'
 
 weather_file_path = [
     "/courses/datasets/ghcn/2015.csv.gz",
@@ -108,6 +110,8 @@ def main():
     weather_data = weather_data.withColumn('TMAX', (weather_data.TMAX / 10)).withColumn('TMIN', (weather_data.TMIN / 10))
     weather_data.drop('TMAX')
     weather_data.drop('TMIN')
+    weather_data = weather_data.withColumn('TAVG', (weather_data.TMAX + weather_data.TMIN)/2)
+    weather_data = weather_data.withColumn('T_label', when(weather_data.TAVG > 13, "hot").otherwise("cold"))
     
     nyc = weather_data.filter((weather_data['city'] == "New York"))
     la = weather_data.filter((weather_data['city'] == "Los Angeles"))
@@ -120,6 +124,18 @@ def main():
     vancouver = weather_data.filter((weather_data['city'] == "Vancouver"))
     calgary = weather_data.filter((weather_data['city'] == "Calgary"))
     montreal = weather_data.filter((weather_data['city'] == "Montreal"))
+    
+    nyc.write.csv(output + 'nyc', mode='overwrite', compression='gzip')
+    la.write.csv(output + 'la', mode='overwrite', compression='gzip')
+    boston.write.csv(output + 'boston', mode='overwrite', compression='gzip')
+    chicago.write.csv(output + 'chicago', mode='overwrite', compression='gzip')
+    seattle.write.csv(output + 'seattle', mode='overwrite', compression='gzip')
+    atlanta.write.csv(output + 'atlanta', mode='overwrite', compression='gzip')
+    sf.write.csv(output + 'sf', mode='overwrite', compression='gzip')
+    toronto.write.csv(output + 'toronto', mode='overwrite', compression='gzip')
+    vancouver.write.csv(output + 'vancouver', mode='overwrite', compression='gzip')
+    calgary.write.csv(output + 'calgary', mode='overwrite', compression='gzip')
+    montreal.write.csv(output + 'montreal', mode='overwrite', compression='gzip')
     
     """ 
     cities = [nyc, la, boston, chicago, seattle, atlanta, sf, toronto, vancouver, calgary, montreal]
