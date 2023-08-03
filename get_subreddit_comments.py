@@ -15,7 +15,7 @@ reddit_comments_path_list = [
     '/courses/datasets/reddit_comments_repartitioned/year=2021/*/*.json.gz',
 ]
 
-output = 'reddit-subset'
+output = 'output/reddit-subset'
 
 comments_schema = types.StructType([
     types.StructField('archived', types.BooleanType()),
@@ -50,6 +50,7 @@ def main():
 
     select_reddit_comments = reddit_comments.select(reddit_comments['subreddit'], reddit_comments['created_utc'], reddit_comments['body'])
 
+    # select_reddit_comments.cache()
     select_reddit_comments.where(select_reddit_comments['subreddit'].isin(subs)) \
         .write.json(output + '/comments', mode='overwrite', compression='gzip')
 

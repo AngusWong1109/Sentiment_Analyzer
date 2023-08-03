@@ -9,8 +9,7 @@ spark.sparkContext.setLogLevel('WARN')
 assert sys.version_info >= (3, 8) # make sure we have Python 3.8+
 assert spark.version >= '3.2' # make sure we have Spark 3.2+
 
-output = 'weather_output/weather-'
-
+output = 'weather-output/weather-'
 weather_file_path = [
     "/courses/datasets/ghcn/2015.csv.gz",
     "/courses/datasets/ghcn/2016.csv.gz",
@@ -77,7 +76,7 @@ weather_schema = types.StructType([
 ])
 
 def main():
-    weather_data = spark.read.csv(weather_file_path_local, schema=weather_schema)
+    weather_data = spark.read.csv(weather_file_path, schema=weather_schema)
     ids_df = spark.createDataFrame(list(ids.items()), ["station_id", "city"])
     weather_data = weather_data.withColumn('date', to_date(weather_data.date, 'yyyyMMdd'))
     weather_data.drop('date')

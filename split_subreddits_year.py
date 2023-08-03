@@ -1,7 +1,7 @@
 import sys
 from pyspark.sql import SparkSession, functions, types
 from datetime import datetime, timezone
-from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+
 
 spark = SparkSession.builder.appName('Analyze Reddit').getOrCreate()
 spark.sparkContext.setLogLevel('WARN')
@@ -11,26 +11,16 @@ assert spark.version >= '3.2' # make sure we have Spark 3.2+
 
 comments_schema = types.StructType([
     types.StructField('subreddit', types.StringType()),
-    types.StructField('created_utc', types.StringType()),
     types.StructField('body', types.StringType()),
+    types.StructField('year', types.IntegerType()),
+    types.StructField('month', types.IntegerType()),
+    types.StructField('day', types.IntegerType()),
+    types.StructField('sentiment', types.StringType()),
 ])
 
 file_path = 'reddit-subset/comments/part*'
 output = 'subreddit-output/subreddit-'
 
-sentimentAnalyzer = SentimentIntensityAnalyzer()
-
-def get_sentiment(text):
-    sentiment = sentimentAnalyzer.polarity_scores(text)
-    return sentiment_classification(sentiment['compound'])
-
-def sentiment_classification(score):
-    if score >= 0.05:
-        return "positive"
-    elif score > -0.05 and score < 0.05:
-        return "neutral"
-    else:
-        return "negative"
 
 def main():
     data = spark.read.json(file_path, schema=comments_schema)
@@ -45,9 +35,6 @@ def main():
                 reddit_data['day'], reddit_data['body'])
 
     reddit_data = reddit_data.cache()
-
-    analyze_sentiment = functions.udf(get_sentiment, returnType=types.StringType())
-    reddit_data = reddit_data.withColumn('sentiment', analyze_sentiment(data['body']))
 
     seattle_data = reddit_data.where(reddit_data['subreddit']=="Seattle")
     losangeles_data = reddit_data.where(reddit_data['subreddit'] == "LosAngeles")
