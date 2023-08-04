@@ -65,14 +65,16 @@ def main():
     reddit_data = reddit_data.withColumn('sentiment', analyze_sentiment(reddit_data['body']))
     reddit_data.cache()
 
-    rainy_days = weather_data.withColumn('PRCP', weather_data['PRCP']/10).filter((weather_data['PRCP'].isNotNull()))
-    rainy_days = rainy_days.drop(rainy_days['date'], rainy_days['SNOW'], rainy_days['SNWD'], rainy_days['TMAX'], rainy_days['TMIN'], rainy_days['TAVG'], rainy_days['T_label'])
-    rainy_days.cache()
+    weather_data.show()
 
+    snow_data = weather_data.filter((weather_data['SNOW'].isNotNull()))
+    snow_data = snow_data.drop(snow_data['date'], snow_data['PRCP'], snow_data['SNWD'], snow_data['TMAX'], snow_data['TMIN'], snow_data['TAVG'], snow_data['T_label'])
+    snow_data.cache()
+    snow_data.show()
 
     reddit_count = reddit_data.groupBy(['year','month','day','sentiment']).count()
-    combined = reddit_count.join(rainy_days, ['year','month','day']).orderBy(['year','month','day','sentiment'])
-    combined = combined.withColumn('has_rain',when(combined.PRCP > 0, True).otherwise(False))
+    combined = reddit_count.join(snow_data, ['year','month','day']).orderBy(['year','month','day','sentiment'])
+    combined = combined.withColumn('has_snow',when(combined['SNOW'] > 0, True).otherwise(False))
     combined.cache()
 
     ### PANDAS DATA FRAME ###
@@ -83,26 +85,24 @@ def main():
     pos_combined_pd = combined_pd.loc[combined_pd['sentiment']=='positive']
     neutral_combined_pd = combined_pd.loc[combined_pd['sentiment']=='neutral']
 
-    neg_rain_pd = combined_pd.loc[(combined_pd['sentiment']=='negative') & (combined_pd['has_rain']==True)]
-    pos_rain_pd = combined_pd.loc[(combined_pd['sentiment']=='positive') & (combined_pd['has_rain']==True)]
-    neutral_rain_pd = combined_pd.loc[(combined_pd['sentiment']=='neutral') & (combined_pd['has_rain']==True)]
+    neg_snow_pd = combined_pd.loc[(combined_pd['sentiment']=='negative') & (combined_pd['has_snow']==True)]
+    pos_snow_pd = combined_pd.loc[(combined_pd['sentiment']=='positive') & (combined_pd['has_snow']==True)]
+    neutral_snow_pd = combined_pd.loc[(combined_pd['sentiment']=='neutral') & (combined_pd['has_snow']==True)]
 
-    neg_no_rain_pd = combined_pd.loc[(combined_pd['sentiment']=='negative') & (combined_pd['has_rain']==False)]
-    pos_no_rain_pd = combined_pd.loc[(combined_pd['sentiment']=='positive') & (combined_pd['has_rain']==False)]
-    neutral_no_rain_pd = combined_pd.loc[(combined_pd['sentiment']=='neutral') & (combined_pd['has_rain']==False)]
+    neg_no_snow_pd = combined_pd.loc[(combined_pd['sentiment']=='negative') & (combined_pd['has_snow']==False)]
+    pos_no_snow_pd = combined_pd.loc[(combined_pd['sentiment']=='positive') & (combined_pd['has_snow']==False)]
+    neutral_no_snow_pd = combined_pd.loc[(combined_pd['sentiment']=='neutral') & (combined_pd['has_snow']==False)]
 
     
-    #### LINEAR REGRESSION PLOT & CALCULATIONS ####
+    # #### LINEAR REGRESSION PLOT & CALCULATIONS ####
     
-
-    pos_regression = stats.linregress(pos_combined_pd['count'],pos_combined_pd['PRCP'])
+    pos_regression = stats.linregress(pos_combined_pd['count'],pos_combined_pd['SNOW'])
     pos_combined_pd['prediction'] = (pos_regression.slope * pos_combined_pd['count']) + pos_regression.intercept
 
-    neg_regression = stats.linregress(neg_combined_pd['count'],neg_combined_pd['PRCP'])
+    neg_regression = stats.linregress(neg_combined_pd['count'],neg_combined_pd['SNOW'])
     neg_combined_pd['prediction'] = (neg_regression.slope * neg_combined_pd['count']) + neg_regression.intercept
 
-
-    neut_regression = stats.linregress(neutral_combined_pd['count'],neutral_combined_pd['PRCP'])
+    neut_regression = stats.linregress(neutral_combined_pd['count'],neutral_combined_pd['SNOW'])
     neutral_combined_pd['prediction'] = (neut_regression.slope * neutral_combined_pd['count']) + neut_regression.intercept
 
     print("LINEAR REGRESSION: Positive lin reg p-value:", pos_regression.pvalue, "r-value:",pos_regression.rvalue)
@@ -113,42 +113,40 @@ def main():
     ### FIGURE 1 - SCATTER PLOT
     plt.figure(1, figsize=(15,5))
     # plt.figure(1)
-    plt.title("Rain and Sentiment Correlation")
+    plt.title("Snow and Sentiment Correlation")
 
     # Plot 1
     plt.subplot(1,3,1)
-    plt.plot(pos_combined_pd['count'],pos_combined_pd['PRCP'], 'b.')
+    plt.plot(pos_combined_pd['count'],pos_combined_pd['SNOW'], 'b.', alpha=0.5)
     plt.plot(pos_combined_pd['count'],pos_combined_pd['prediction'], 'r', linewidth=2)
-    plt.xlabel("# of positive reddit comments (daily)")
-    plt.ylabel("Amount of daily rain (in mm)")
-    plt.title("Positive Sentiment & Rain Correlation")
-    plt.semilogx()
-    plt.semilogy()
-
+    plt.xlabel("# of reddit comments (daily)")
+    plt.ylabel("Amount of daily snow (in mm)")
+    plt.title("Positive Sentiment & Snow Correlation")
+    # plt.semilogx()
+    # plt.semilogy()
 
     # Plot 2
     plt.subplot(1,3,2)
-    plt.plot(neg_combined_pd['count'],neg_combined_pd['PRCP'], 'c.')
+    plt.plot(neg_combined_pd['count'],neg_combined_pd['SNOW'], 'c.', alpha=0.5)
     plt.plot(neg_combined_pd['count'],neg_combined_pd['prediction'], 'r', linewidth=2)
-    plt.xlabel("# of negative reddit comments (daily)")
-    plt.ylabel("Amount of daily rain (in mm)")
-    plt.title("Negative Sentiment & Rain Correlation")
-    plt.semilogx()
-    plt.semilogy()
+    plt.xlabel("# of reddit comments (daily)")
+    plt.ylabel("Amount of daily snow (in mm)")
+    plt.title("Negative Sentiment & Snow Correlation")
+    # plt.semilogx()
+    # plt.semilogy()
 
     # Plot 3
     plt.subplot(1,3,3)
-    plt.plot(neutral_combined_pd['count'],neutral_combined_pd['PRCP'], 'g.')
+    plt.plot(neutral_combined_pd['count'],neutral_combined_pd['SNOW'], 'g.', alpha=0.5)
     plt.plot(neutral_combined_pd['count'],neutral_combined_pd['prediction'], 'r', linewidth=2)
-    plt.xlabel("# of neutral reddit comments (daily)")
-    plt.ylabel("Amount of daily rain (in mm)")
-    plt.title("Neutral Sentiment & Rain Correlation")
-    plt.semilogx()
-    plt.semilogy()
-
+    plt.xlabel("# of reddit comments (daily)")
+    plt.ylabel("Amount of daily snow (in mm)")
+    plt.title("Neutral Sentiment & Snow Correlation")
+    # plt.semilogx()
+    # plt.semilogy()
 
     # plt.legend(['positive','negative','neutral'])
-    plt.savefig('allcities-scatter.png')
+    plt.savefig('allcities-snow-scatter.png')
     # plt.show()
 
     ### FIGURE 2 - HISTOGRAM
@@ -158,12 +156,13 @@ def main():
     plt.xlabel("Frequency of # of daily reddit comments")
     plt.ylabel("# of positive/negative/neutral reddit comments per day")
     # plt.show()
-    plt.savefig('allcities-hist.png')
+    plt.savefig('allcities-snow-hist.png')
+    
 
     #### CHI SQUARE ####
     combined_pd_posneg = combined_pd.where(combined_pd['sentiment']!='neutral').dropna()
 
-    contingency = pd.pivot_table(combined_pd_posneg, values='count', index=['has_rain'], columns=['sentiment'], aggfunc=np.sum)
+    contingency = pd.pivot_table(combined_pd_posneg, values='count', index=['has_snow'], columns=['sentiment'], aggfunc=np.sum)
     print("Contingency Table:")
     print(contingency)
 
@@ -173,48 +172,37 @@ def main():
     ### Chi square including neutral comments
     combined_pd_all = combined_pd.dropna()
 
-    contingency_all = pd.pivot_table(combined_pd_all, values='count', index=['has_rain'], columns=['sentiment'], aggfunc=np.sum)
+    contingency_all = pd.pivot_table(combined_pd_all, values='count', index=['has_snow'], columns=['sentiment'], aggfunc=np.sum)
     print("Contingency All Table:")
     print(contingency_all )
 
     chi2_all, p_all, dof_all, expected_all = stats.chi2_contingency(contingency_all)
     print("Chi All P-value:",p_all)
 
-    # ### Sample amount for chi-square
-    # combined_pd_posneg_sample = combined_pd_posneg.sample(frac=0.5, random_state=1)
-
-    # contingency_sample = pd.pivot_table(combined_pd_posneg_sample, values='count', index=['has_rain'], columns=['sentiment'], aggfunc=np.sum)
-    # print("Contingency Sample Table:")
-    # print(contingency_sample)
-
-    # chi2_sample, p_sample, dof_sample, expected_sample = stats.chi2_contingency(contingency_sample)
-    # print("Chi Sample P-value:",p_sample)
-
-
     #### ANOVA AND TUKEYHSD ANALYSIS ####
-    anova_rain = stats.f_oneway(neg_rain_pd['count'], pos_rain_pd['count'], neutral_rain_pd['count'])
-    print("ANOVA - Rain Data P-value:", anova_rain.pvalue)
+    anova_snow = stats.f_oneway(neg_snow_pd['count'], pos_snow_pd['count'], neutral_snow_pd['count'])
+    print("ANOVA - Snow Data P-value:", anova_snow.pvalue)
 
-    tukey_data_rain = pd.concat([
-        pd.DataFrame({'sentiment':'negative', 'count':neg_rain_pd['count'].values}),
-        pd.DataFrame({'sentiment':'positive', 'count':pos_rain_pd['count'].values}),
-        pd.DataFrame({'sentiment':'neutral', 'count':neutral_rain_pd['count'].values}),
+    tukey_data_snow = pd.concat([
+        pd.DataFrame({'sentiment':'negative', 'count':neg_snow_pd['count'].values}),
+        pd.DataFrame({'sentiment':'positive', 'count':pos_snow_pd['count'].values}),
+        pd.DataFrame({'sentiment':'neutral', 'count':neutral_snow_pd['count'].values}),
     ])
 
-    posthoc_rain = pairwise_tukeyhsd(tukey_data_rain['count'], tukey_data_rain['sentiment'], alpha=0.05)
-    print("Tukey HSD - Rain Data:")
-    print(posthoc_rain)
+    posthoc_snow = pairwise_tukeyhsd(tukey_data_snow['count'], tukey_data_snow['sentiment'], alpha=0.05)
+    print("Tukey HSD - Snow Data:")
+    print(posthoc_snow)
 
-    anova_combined = stats.f_oneway(neg_rain_pd['count'], pos_rain_pd['count'], neutral_rain_pd['count'], neg_no_rain_pd['count'], pos_no_rain_pd['count'], neutral_no_rain_pd['count'])
+    anova_combined = stats.f_oneway(neg_snow_pd['count'], pos_snow_pd['count'], neutral_snow_pd['count'], neg_no_snow_pd['count'], pos_no_snow_pd['count'], neutral_no_snow_pd['count'])
     print("ANOVA - Combined Data P-value:", anova_combined.pvalue)
 
     tukey_data_combined = pd.concat([
-        pd.DataFrame({'sentiment':'rain-negative', 'count':neg_rain_pd['count'].values}),
-        pd.DataFrame({'sentiment':'rain-positive', 'count':pos_rain_pd['count'].values}),
-        pd.DataFrame({'sentiment':'rain-neutral', 'count':neutral_rain_pd['count'].values}),
-        pd.DataFrame({'sentiment':'noRain-negative', 'count':neg_no_rain_pd['count'].values}),
-        pd.DataFrame({'sentiment':'noRain-positive', 'count':pos_no_rain_pd['count'].values}),
-        pd.DataFrame({'sentiment':'noRain-neutral', 'count':neutral_no_rain_pd['count'].values}),
+        pd.DataFrame({'sentiment':'snow-negative', 'count':neg_snow_pd['count'].values}),
+        pd.DataFrame({'sentiment':'snow-positive', 'count':pos_snow_pd['count'].values}),
+        pd.DataFrame({'sentiment':'snow-neutral', 'count':neutral_snow_pd['count'].values}),
+        pd.DataFrame({'sentiment':'noSnow-negative', 'count':neg_no_snow_pd['count'].values}),
+        pd.DataFrame({'sentiment':'noSnow-positive', 'count':pos_no_snow_pd['count'].values}),
+        pd.DataFrame({'sentiment':'noSnow-neutral', 'count':neutral_no_snow_pd['count'].values}),
     ])
 
     posthoc_combined = pairwise_tukeyhsd(tukey_data_combined['count'], tukey_data_combined['sentiment'], alpha=0.05)
@@ -222,7 +210,6 @@ def main():
     print(posthoc_combined)
 
 
-    
 
 if __name__=='__main__':
     # city = sys.argv[1]
