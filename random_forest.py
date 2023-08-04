@@ -15,6 +15,8 @@ assert spark.version >= '3.2' # make sure we have Spark 3.2+
 
 weather_filepath = 'weather_output/weather-*'
 subreddit_filepath = 'subreddit-output/subreddit-*'
+weather_sample_filepath = 'sample_dataset/weather_output/weather-*'
+subreddit_sample_filepath = 'sample_dataset/reddit_output/part-*'
 
 weather_schema = types.StructType([
     types.StructField('station_id', types.StringType()),
@@ -41,11 +43,14 @@ comments_schema = types.StructType([
     types.StructField('sentiment', types.StringType())
 ])
 
-cities_to_work_on = []
-
 def main():
-    weather = spark.read.csv(weather_filepath, schema=weather_schema)
-    reddit = spark.read.json(subreddit_filepath, schema=comments_schema)
+    #read file
+    if argv[1] == 'whole':
+        weather = spark.read.csv(weather_filepath, schema=weather_schema)
+        reddit = spark.read.json(subreddit_filepath, schema=comments_schema)
+    else:
+        weather = spark.read.csv(weather_sample_filepath, schema=weather_schema)
+        reddit = spark.read.json(subreddit_sample_filepath, schema=comments_schema)
     weather = weather.sort('date', ascending=True)
     
     joined_data = weather.join(reddit, [weather.year == reddit.year, 
