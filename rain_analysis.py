@@ -117,34 +117,34 @@ def main():
 
     # Plot 1
     plt.subplot(1,3,1)
-    plt.plot(pos_combined_pd['count'],pos_combined_pd['PRCP'], 'b.')
+    plt.plot(pos_combined_pd['count'],pos_combined_pd['PRCP'], 'b.', alpha=0.5)
     plt.plot(pos_combined_pd['count'],pos_combined_pd['prediction'], 'r', linewidth=2)
     plt.xlabel("# of positive reddit comments (daily)")
     plt.ylabel("Amount of daily rain (in mm)")
     plt.title("Positive Sentiment & Rain Correlation")
-    plt.semilogx()
-    plt.semilogy()
+    # plt.semilogx()
+    # plt.semilogy()
 
 
     # Plot 2
     plt.subplot(1,3,2)
-    plt.plot(neg_combined_pd['count'],neg_combined_pd['PRCP'], 'c.')
+    plt.plot(neg_combined_pd['count'],neg_combined_pd['PRCP'], 'c.', alpha=0.5)
     plt.plot(neg_combined_pd['count'],neg_combined_pd['prediction'], 'r', linewidth=2)
     plt.xlabel("# of negative reddit comments (daily)")
     plt.ylabel("Amount of daily rain (in mm)")
     plt.title("Negative Sentiment & Rain Correlation")
-    plt.semilogx()
-    plt.semilogy()
+    # plt.semilogx()
+    # plt.semilogy()
 
     # Plot 3
     plt.subplot(1,3,3)
-    plt.plot(neutral_combined_pd['count'],neutral_combined_pd['PRCP'], 'g.')
+    plt.plot(neutral_combined_pd['count'],neutral_combined_pd['PRCP'], 'g.', alpha=0.5)
     plt.plot(neutral_combined_pd['count'],neutral_combined_pd['prediction'], 'r', linewidth=2)
     plt.xlabel("# of neutral reddit comments (daily)")
     plt.ylabel("Amount of daily rain (in mm)")
     plt.title("Neutral Sentiment & Rain Correlation")
-    plt.semilogx()
-    plt.semilogy()
+    # plt.semilogx()
+    # plt.semilogy()
 
 
     # plt.legend(['positive','negative','neutral'])
