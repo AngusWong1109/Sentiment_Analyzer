@@ -27,17 +27,17 @@ weather_file_path_local = [
 ]
 
 ids = {
-    'USW00094728': 'New York',
-    'USW00023174': 'Los Angeles',
-    'USW00014739': 'Boston',
-    'USW00014819': 'Chicago',
+    'USW00094728': 'nyc',
+    'USW00023174': 'LosAngeles',
+    'USW00014739': 'boston',
+    'USW00014819': 'chicago',
     'USW00024233': 'Seattle',
     'USW00053863': 'Atlanta',
-    'USW00023234': 'San Francisco',
-    'CA006158731': 'Toronto',
-    'CA001108380': 'Vancouver',
+    'USW00023234': 'sanfrancisco',
+    'CA006158731': 'toronto',
+    'CA001108380': 'vancouver',
     'CA003031092': 'Calgary',
-    'CA007025251': 'Montreal'
+    'CA007025251': 'montreal'
 }
 
 stations = [
@@ -100,11 +100,6 @@ def main():
     
     weather_data = weather_data.join(ids_df, 'station_id', how='left')
     weather_data = weather_data.cache()
-    
-    #Show number of data for each city
-    # count_data = weather_data.groupBy('city').agg({'city':'count'})
-    # weather_data.show()
-    
     weather_data = weather_data.groupBy(['station_id', 'date', 'year', 'month', 'day', 'city']).pivot('element', elements).sum('data_value')
     weather_data = weather_data.withColumn('TMAX', (weather_data.TMAX / 10)).withColumn('TMIN', (weather_data.TMIN / 10))
     weather_data.drop('TMAX')
@@ -112,17 +107,17 @@ def main():
     weather_data = weather_data.withColumn('TAVG', (weather_data.TMAX + weather_data.TMIN)/2)
     weather_data = weather_data.withColumn('T_label', when(weather_data.TAVG > 13, "hot").otherwise("cold"))
     
-    nyc = weather_data.filter((weather_data['city'] == "New York"))
-    la = weather_data.filter((weather_data['city'] == "Los Angeles"))
-    boston = weather_data.filter((weather_data['city'] == "Boston"))
-    chicago = weather_data.filter((weather_data['city'] == "Chicago"))
+    nyc = weather_data.filter((weather_data['city'] == "nyc"))
+    la = weather_data.filter((weather_data['city'] == "LosAngeles"))
+    boston = weather_data.filter((weather_data['city'] == "boston"))
+    chicago = weather_data.filter((weather_data['city'] == "chicago"))
     seattle = weather_data.filter((weather_data['city'] == "Seattle"))
     atlanta = weather_data.filter((weather_data['city'] == "Atlanta"))
-    sf = weather_data.filter((weather_data['city'] == "San Francisco"))
-    toronto = weather_data.filter((weather_data['city'] == "Toronto"))
-    vancouver = weather_data.filter((weather_data['city'] == "Vancouver"))
+    sf = weather_data.filter((weather_data['city'] == "sanfrancisco"))
+    toronto = weather_data.filter((weather_data['city'] == "toronto"))
+    vancouver = weather_data.filter((weather_data['city'] == "vancouver"))
     calgary = weather_data.filter((weather_data['city'] == "Calgary"))
-    montreal = weather_data.filter((weather_data['city'] == "Montreal"))
+    montreal = weather_data.filter((weather_data['city'] == "montreal"))
     
     nyc.write.csv(output + 'nyc', mode='overwrite', compression='gzip')
     la.write.csv(output + 'la', mode='overwrite', compression='gzip')
@@ -137,7 +132,9 @@ def main():
     montreal.write.csv(output + 'montreal', mode='overwrite', compression='gzip')
     
     """ 
+    #For drawing temperature data per city
     cities = [nyc, la, boston, chicago, seattle, atlanta, sf, toronto, vancouver, calgary, montreal]
+    count = 0
     
     for city in cities:
         pdCity = city.toPandas()
@@ -146,7 +143,9 @@ def main():
         plt.legend(['TMIN', 'TMAX'])
         plt.xlabel('Date')
         plt.ylabel('Temperature')
-        plt.show() 
+        filename = 'temperature-city' + str(count) + ".png"
+        count+=1
+        plt.savefig(filename)
     """
     
 main()
