@@ -119,17 +119,17 @@ def main():
     calgary = weather_data.filter((weather_data['city'] == "Calgary"))
     montreal = weather_data.filter((weather_data['city'] == "montreal"))
     
-    nyc.write.csv(output + 'nyc', mode='overwrite', compression='gzip')
-    la.write.csv(output + 'la', mode='overwrite', compression='gzip')
-    boston.write.csv(output + 'boston', mode='overwrite', compression='gzip')
-    chicago.write.csv(output + 'chicago', mode='overwrite', compression='gzip')
-    seattle.write.csv(output + 'seattle', mode='overwrite', compression='gzip')
-    atlanta.write.csv(output + 'atlanta', mode='overwrite', compression='gzip')
-    sf.write.csv(output + 'sf', mode='overwrite', compression='gzip')
-    toronto.write.csv(output + 'toronto', mode='overwrite', compression='gzip')
-    vancouver.write.csv(output + 'vancouver', mode='overwrite', compression='gzip')
-    calgary.write.csv(output + 'calgary', mode='overwrite', compression='gzip')
-    montreal.write.csv(output + 'montreal', mode='overwrite', compression='gzip')
+    nyc.write.json(output + 'nyc', mode='overwrite', compression='gzip')
+    la.write.json(output + 'la', mode='overwrite', compression='gzip')
+    boston.write.json(output + 'boston', mode='overwrite', compression='gzip')
+    chicago.write.json(output + 'chicago', mode='overwrite', compression='gzip')
+    seattle.write.json(output + 'seattle', mode='overwrite', compression='gzip')
+    atlanta.write.json(output + 'atlanta', mode='overwrite', compression='gzip')
+    sf.write.json(output + 'sf', mode='overwrite', compression='gzip')
+    toronto.write.json(output + 'toronto', mode='overwrite', compression='gzip')
+    vancouver.write.json(output + 'vancouver', mode='overwrite', compression='gzip')
+    calgary.write.json(output + 'calgary', mode='overwrite', compression='gzip')
+    montreal.write.json(output + 'montreal', mode='overwrite', compression='gzip')
     
     """ 
     #For drawing temperature data per city
