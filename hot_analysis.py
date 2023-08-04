@@ -182,7 +182,7 @@ def main():
     model.fit(X, y)
     pd_hot_neu['prediction'] = model.predict(X)
     #linear regression: hot and positive
-    reg_hot_neu = stats.linregress(pd_hot_neg['TAVG'], y)
+    reg_hot_neu = stats.linregress(pd_hot_neu['TAVG'], y)
     pd_hot_neu['lin_predict'] = reg_hot_neu.slope * pd_hot_neu['TAVG'] + reg_hot_neu.intercept
     
     #Plot graph
