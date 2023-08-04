@@ -56,11 +56,17 @@ def sentiment_classification(score):
 def main(city):
     reddit_path = 'subreddit-output/subreddit-'+city+'/part*'
     weather_path = 'weather-output/weather-'+city+'/part*'
+    weather_sample_filepath = 'sample_dataset/weather_output/weather-*'
+    reddit_sample_filepath = 'sample_dataset/reddit_output/part-*'
     # print(reddit_path, weather_path)
 
-    reddit_data = spark.read.json(reddit_path, schema=comments_schema)
-    weather_data = spark.read.json(weather_path, schema=weather_schema)
-
+    if argv[1] == 'whole':
+        reddit_data = spark.read.json(reddit_path, schema=comments_schema)
+        weather_data = spark.read.csv(weather_path, schema=weather_schema)
+    else:
+        reddit_data = spark.read.json(reddit_sample_filepath, schema=comments_schema)
+        weather_data = spark.read.csv(weather_sample_filepath, schema=weather_schema)
+    
     analyze_sentiment = functions.udf(get_sentiment, returnType=types.StringType())
     reddit_data = reddit_data.withColumn('sentiment', analyze_sentiment(reddit_data['body']))
     reddit_data.cache()

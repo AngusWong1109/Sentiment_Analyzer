@@ -20,6 +20,9 @@ assert spark.version >= '3.2' # make sure we have Spark 3.2+
 weather_filepath = 'weather_output/weather-*'
 subreddit_filepath = 'subreddit-output/subreddit-*'
 
+weather_sample_filepath = 'sample_dataset/weather_output/weather-*'
+subreddit_sample_filepath = 'sample_dataset/reddit_output/part-*'
+
 weather_schema = types.StructType([
     types.StructField('station_id', types.StringType()),
     types.StructField('date', types.DateType()),
@@ -48,8 +51,15 @@ comments_schema = types.StructType([
 cities_to_work_on = []
 
 def main():
-    weather = spark.read.csv(weather_filepath, schema=weather_schema)
-    reddit = spark.read.json(subreddit_filepath, schema=comments_schema)
+    #read file
+    if argv[1] == 'whole':
+        weather = spark.read.csv(weather_filepath, schema=weather_schema)
+        reddit = spark.read.json(subreddit_filepath, schema=comments_schema)
+    else:
+        weather = spark.read.csv(weather_sample_filepath, schema=weather_schema)
+        reddit = spark.read.json(subreddit_sample_filepath, schema=comments_schema)
+    
+    
     weather = weather.sort('date', ascending=True)
     
     joined_data = weather.join(reddit, [weather.year == reddit.year, 
@@ -120,7 +130,7 @@ def main():
     )
     
     model = make_pipeline(
-        PolynomialFeatures(degree=12, include_bias=True),
+        PolynomialFeatures(degree=4, include_bias=True),
         LinearRegression(fit_intercept=False)
     )
     
@@ -133,20 +143,9 @@ def main():
     X = np.stack([x], axis=1)
     model.fit(X, y)
     pd_cold_pos['prediction'] = model.predict(X)
-    
     #linear regression: cold and positive
     reg_cold_pos = stats.linregress(pd_cold_pos['TAVG'], y)
-    pd_cold_pos['lin_predict'] = reg_cold_pos.slope * pd_cold_pos['TAVG'] + reg_cold_pos.intercept
-
-    plt.xticks(rotation = 25)
-    plt.plot(pd_cold_pos['TAVG'], pd_cold_pos['num_of_pos'], 'b.')
-    plt.plot(pd_cold_pos['TAVG'], pd_cold_pos['prediction'], 'r-')
-    plt.plot(pd_cold_pos['TAVG'], pd_cold_pos['lin_predict'], 'g-')
-    plt.xlabel('Temperature')
-    plt.ylabel('number of post')
-    plt.title('linear regression of cold and positive')
-    filename = 'cold-pos.png'
-    plt.savefig(filename)
+    pd_cold_pos['lin_predict'] = reg_cold_pos.slope * pd_cold_pos['TAVG'] + reg_cold_pos.intercept    
     
     #polynomial regression: cold and negative
     grouped_cold_neg = cold_weather.filter(cold_weather['sentiment'] == 'negative').groupBy(['subreddit', 'TAVG']).agg(count('sentiment').alias('num_of_neg'))
@@ -157,20 +156,9 @@ def main():
     X = np.stack([x], axis=1)
     model.fit(X, y)
     pd_cold_neg['prediction'] = model.predict(X)
-    
     #linear regression: cold and negative
     reg_cold_neg = stats.linregress(pd_cold_neg['TAVG'], y)
     pd_cold_neg['lin_predict'] = reg_cold_neg.slope * pd_cold_neg['TAVG'] + reg_cold_neg.intercept
-    
-    plt.xticks(rotation = 25)
-    plt.plot(pd_cold_neg['TAVG'], pd_cold_neg['num_of_neg'], 'b.')
-    plt.plot(pd_cold_neg['TAVG'], pd_cold_neg['prediction'], 'r-')
-    plt.plot(pd_cold_neg['TAVG'], pd_cold_neg['lin_predict'], 'g-')
-    plt.xlabel('Temperature')
-    plt.ylabel('number of post')
-    plt.title('linear regression of cold and negative')
-    filename = 'cold-neg.png'
-    plt.savefig(filename)
     
     #polynomial regression: cold and neural
     grouped_cold_neg = cold_weather.filter(cold_weather['sentiment'] == 'neutral').groupBy(['subreddit', 'TAVG']).agg(count('sentiment').alias('num_of_neu'))
@@ -181,20 +169,42 @@ def main():
     X = np.stack([x], axis=1)
     model.fit(X, y)
     pd_cold_neu['prediction'] = model.predict(X)
-    
     #linear regression: cold and neutral
     reg_cold_neu = stats.linregress(pd_cold_neu['TAVG'], y)
     pd_cold_neu['lin_predict'] = reg_cold_neu.slope * pd_cold_neu['TAVG'] + reg_cold_neu.intercept
     
-    plt.xticks(rotation = 25)
+    #Plot graph
+    plt.figure(1, figsize=(15,5))
+    plt.title("Cold weather and sentiment analysis") 
+    
+    #Plot 1
+    plt.subplot(1, 3, 1)
+    plt.plot(pd_cold_pos['TAVG'], pd_cold_pos['num_of_pos'], 'b.')
+    plt.plot(pd_cold_pos['TAVG'], pd_cold_pos['prediction'], 'r-')
+    plt.plot(pd_cold_pos['TAVG'], pd_cold_pos['lin_predict'], 'g-')
+    plt.xlabel('Temperature')
+    plt.ylabel('number of post')
+    plt.title('linear regression of cold and positive')
+    
+    #Plot 2
+    plt.subplot(1, 3, 2)
+    plt.plot(pd_cold_neg['TAVG'], pd_cold_neg['num_of_neg'], 'b.')
+    plt.plot(pd_cold_neg['TAVG'], pd_cold_neg['prediction'], 'r-')
+    plt.plot(pd_cold_neg['TAVG'], pd_cold_neg['lin_predict'], 'g-')
+    plt.xlabel('Temperature')
+    plt.ylabel('number of post')
+    plt.title('linear regression of cold and negative')
+    
+    #Plot 3
+    plt.subplot(1, 3, 3)
     plt.plot(pd_cold_neu['TAVG'], pd_cold_neu['num_of_neu'], 'b.')
     plt.plot(pd_cold_neu['TAVG'], pd_cold_neu['prediction'], 'r-')
     plt.plot(pd_cold_neu['TAVG'], pd_cold_neu['lin_predict'], 'g-')
     plt.xlabel('Temperature')
     plt.ylabel('number of post')
     plt.title('linear regression of cold and neutral')
-    filename = 'cold-neu.png'
-    plt.savefig(filename)
+        
+    plt.savefig('cold.png')
        
     #chi-square test
     pd_cold_pos = cold_weather.filter(cold_weather['sentiment'] == 'positive').agg(count('sentiment').alias('count')).toPandas()
@@ -245,6 +255,7 @@ def main():
     print('U test:')
     print('Positive vs negative U-test result:', stats.mannwhitneyu(pd_pos_grouped['count'], pd_neg_grouped['count']))
     print('Neutral vs negative U-test result:', stats.mannwhitneyu(pd_neu_grouped['count'], pd_neg_grouped['count']))
-    print('Positive vs neutral U-test result:', stats.mannwhitneyu(pd_pos_grouped['count'], pd_neu_grouped['count'])) 
+    print('Positive vs neutral U-test result:', stats.mannwhitneyu(pd_pos_grouped['count'], pd_neu_grouped['count']))
+    print()
         
 main()

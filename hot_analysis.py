@@ -20,18 +20,8 @@ assert spark.version >= '3.2' # make sure we have Spark 3.2+
 weather_filepath = 'weather_output/weather-*'
 subreddit_filepath = 'subreddit-output/subreddit-*'
 
-weather_filepath_local = [
-    '../dataset/2019.csv.gz',
-    '../dataset/2020.csv.gz',
-    '../dataset/2021.csv.gz',
-]
-
-subreddit_filepath_local = [
-    '../dataset/part-00710-*.json.gz',
-    '../dataset/part-00711-*.json.gz',
-    '../dataset/part-00712-*.json.gz',
-    '../dataset/part-00713-*.json.gz',
-]
+weather_sample_filepath = 'sample_dataset/weather_output/weather-*'
+subreddit_sample_filepath = 'sample_dataset/reddit_output/part-*'
 
 weather_schema = types.StructType([
     types.StructField('station_id', types.StringType()),
@@ -61,8 +51,13 @@ comments_schema = types.StructType([
 cities_to_work_on = []
 
 def main():
-    weather = spark.read.csv(weather_filepath, schema=weather_schema)
-    reddit = spark.read.json(subreddit_filepath, schema=comments_schema)
+    #read file
+    if argv[1] == 'whole':
+        weather = spark.read.csv(weather_filepath, schema=weather_schema)
+        reddit = spark.read.json(subreddit_filepath, schema=comments_schema)
+    else:
+        weather = spark.read.csv(weather_sample_filepath, schema=weather_schema)
+        reddit = spark.read.json(subreddit_sample_filepath, schema=comments_schema)
     weather = weather.sort('date', ascending=True)
     
     joined_data = weather.join(reddit, [weather.year == reddit.year, 
@@ -113,8 +108,23 @@ def main():
             cities_to_work_on.append(calgary)
         elif i == "montreal":
             cities_to_work_on.append(montreal)
-    """
             
+    for city in cities_to_work_on:
+        positive_post = city.filter(
+            city['sentiment'] == 'positive'
+        )
+        negative_post = city.filter(
+            city['sentiment'] == 'negative'
+        )
+        neutral_post = city.filter(
+            city['sentiment'] == 'neutral'
+        )
+        hot_weather = city.filter(
+            city['T_label'] == 'hot'
+        )
+    
+    """
+    
     cold_weather = joined_data.filter(
         joined_data['T_label'] == 'cold'
     )
@@ -132,26 +142,9 @@ def main():
     )
     
     model = make_pipeline(
-        PolynomialFeatures(degree=12, include_bias=True),
+        PolynomialFeatures(degree=4, include_bias=True),
         LinearRegression(fit_intercept=False)
     )
-    
-    """ 
-    for city in cities_to_work_on:
-        positive_post = city.filter(
-            city['sentiment'] == 'positive'
-        )
-        negative_post = city.filter(
-            city['sentiment'] == 'negative'
-        )
-        neutral_post = city.filter(
-            city['sentiment'] == 'neutral'
-        )
-        hot_weather = city.filter(
-            city['T_label'] == 'hot'
-        )
-    """
-        
         
     #polynomial regression: hot and positive
     grouped_hot_pos = hot_weather.filter(hot_weather['sentiment'] == 'positive').groupBy(['subreddit', 'TAVG']).agg(count('sentiment').alias('num_of_pos'))
@@ -162,20 +155,9 @@ def main():
     X = np.stack([x], axis=1)
     model.fit(X, y)
     pd_hot_pos['prediction'] = model.predict(X)
-    
     #linear regression: hot and positive
     reg_hot_pos = stats.linregress(pd_hot_pos['TAVG'], y)
     pd_hot_pos['lin_predict'] = reg_hot_pos.slope * pd_hot_pos['TAVG'] + reg_hot_pos.intercept
-    
-    plt.xticks(rotation = 25)
-    plt.plot(pd_hot_pos['TAVG'], pd_hot_pos['num_of_pos'], 'b.')
-    plt.plot(pd_hot_pos['TAVG'], pd_hot_pos['prediction'], 'r-')
-    plt.plot(pd_hot_pos['TAVG'], pd_hot_pos['lin_predict'], 'g-')
-    plt.xlabel('Temperature')
-    plt.ylabel('number of post')
-    plt.title('linear regression of hot and positive')
-    filename = 'hot-pos.png'
-    plt.savefig(filename)
     
     #polynomial regression: hot and negative
     grouped_hot_neg = hot_weather.filter(hot_weather['sentiment'] == 'negative').groupBy(['subreddit', 'TAVG']).agg(count('sentiment').alias('num_of_neg'))
@@ -186,20 +168,9 @@ def main():
     X = np.stack([x], axis=1)
     model.fit(X, y)
     pd_hot_neg['prediction'] = model.predict(X)
-    
     #linear regression: hot and positive
     reg_hot_neg = stats.linregress(pd_hot_neg['TAVG'], y)
     pd_hot_neg['lin_predict'] = reg_hot_neg.slope * pd_hot_neg['TAVG'] + reg_hot_neg.intercept
-    
-    plt.xticks(rotation = 25)
-    plt.plot(pd_hot_neg['TAVG'], pd_hot_neg['num_of_neg'], 'b.')
-    plt.plot(pd_hot_neg['TAVG'], pd_hot_neg['prediction'], 'r-')
-    plt.plot(pd_hot_neg['TAVG'], pd_hot_neg['lin_predict'], 'g-')
-    plt.xlabel('Temperature')
-    plt.ylabel('number of post')
-    plt.title('linear regression of hot and negative')
-    filename = 'hot-neg.png'
-    plt.savefig(filename)
     
     #polynomial regression: hot and neural
     grouped_hot_neg = hot_weather.filter(hot_weather['sentiment'] == 'neutral').groupBy(['subreddit', 'TAVG']).agg(count('sentiment').alias('num_of_neu'))
@@ -210,20 +181,42 @@ def main():
     X = np.stack([x], axis=1)
     model.fit(X, y)
     pd_hot_neu['prediction'] = model.predict(X)
-    
     #linear regression: hot and positive
     reg_hot_neu = stats.linregress(pd_hot_neg['TAVG'], y)
     pd_hot_neu['lin_predict'] = reg_hot_neu.slope * pd_hot_neu['TAVG'] + reg_hot_neu.intercept
     
-    plt.xticks(rotation = 25)
+    #Plot graph
+    plt.figure(1, figsize=(15,5))
+    plt.title("Hot weather and sentiment analysis")   
+    
+    #Plot 1
+    plt.subplot(1, 3, 1)
+    plt.plot(pd_hot_pos['TAVG'], pd_hot_pos['num_of_pos'], 'b.')
+    plt.plot(pd_hot_pos['TAVG'], pd_hot_pos['prediction'], 'r-')
+    plt.plot(pd_hot_pos['TAVG'], pd_hot_pos['lin_predict'], 'g-')
+    plt.xlabel('Temperature')
+    plt.ylabel('number of post')
+    plt.title('linear regression of hot and positive')
+    
+    #Plot 2
+    plt.subplot(1, 3, 2)
+    plt.plot(pd_hot_neg['TAVG'], pd_hot_neg['num_of_neg'], 'b.')
+    plt.plot(pd_hot_neg['TAVG'], pd_hot_neg['prediction'], 'r-')
+    plt.plot(pd_hot_neg['TAVG'], pd_hot_neg['lin_predict'], 'g-')
+    plt.xlabel('Temperature')
+    plt.ylabel('number of post')
+    plt.title('linear regression of hot and negative')
+    
+    #Plot 3
+    plt.subplot(1, 3, 3)
     plt.plot(pd_hot_neu['TAVG'], pd_hot_neu['num_of_neu'], 'b.')
     plt.plot(pd_hot_neu['TAVG'], pd_hot_neu['prediction'], 'r-')
     plt.plot(pd_hot_neu['TAVG'], pd_hot_neu['lin_predict'], 'g-')
     plt.xlabel('Temperature')
     plt.ylabel('number of post')
     plt.title('linear regression of hot and neutral')
-    filename = 'hot-neu.png'
-    plt.savefig(filename)
+    
+    plt.savefig('hot.png')
         
     #ANOVA test on hot weather
     #group by each day
@@ -249,5 +242,6 @@ def main():
     print('Anova p-value', anova.pvalue)
     print("Hot posthoc result:")
     print(posthoc)
+    print()
         
 main()
