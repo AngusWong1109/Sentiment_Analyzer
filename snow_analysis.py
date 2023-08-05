@@ -60,7 +60,7 @@ def main():
     reddit_sample_filepath = 'sample_dataset/reddit_output/part-*'
     # print(reddit_path)
 
-    if argv[1] == 'whole':
+    if sys.argv[1] == 'whole':
         reddit_data = spark.read.json(reddit_path, schema=comments_schema)
         weather_data = spark.read.csv(weather_path, schema=weather_schema)
     else:
