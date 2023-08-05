@@ -75,44 +75,6 @@ def main():
     joined_data_selected = joined_data_selected.dropna()
     joined_data_selected = joined_data_selected.cache()
     
-    """ 
-    nyc = joined_data_selected.filter((joined_data_selected['city'] == "nyc"))
-    la = joined_data_selected.filter((joined_data_selected['city'] == "LosAngeles"))
-    boston = joined_data_selected.filter((joined_data_selected['city'] == "boston"))
-    chicago = joined_data_selected.filter((joined_data_selected['city'] == "chicago"))
-    seattle = joined_data_selected.filter((joined_data_selected['city'] == "Seattle"))
-    atlanta = joined_data_selected.filter((joined_data_selected['city'] == "Atlanta"))
-    sf = joined_data_selected.filter((joined_data_selected['city'] == "sanfrancisco"))
-    toronto = joined_data_selected.filter((joined_data_selected['city'] == "toronto"))
-    vancouver = joined_data_selected.filter((joined_data_selected['city'] == "vancouver"))
-    calgary = joined_data_selected.filter((joined_data_selected['city'] == "Calgary"))
-    montreal = joined_data_selected.filter((joined_data_selected['city'] == "montreal"))
-
-    for i in argv:
-        if i == "vancouver":
-            cities_to_work_on.append(vancouver)
-        elif i == "nyc":
-            cities_to_work_on.append(nyc)
-        elif i == "la":
-            cities_to_work_on.append(la)
-        elif i == "boston":
-            cities_to_work_on.append(boston)
-        elif i == "chicago":
-            cities_to_work_on.append(chicago)
-        elif i == "seattle":
-            cities_to_work_on.append(seattle)
-        elif i == "atlanta":
-            cities_to_work_on.append(atlanta)
-        elif i == "sf":
-            cities_to_work_on.append(sf)
-        elif i == "toronto":
-            cities_to_work_on.append(toronto)
-        elif i == "calgary":
-            cities_to_work_on.append(calgary)
-        elif i == "montreal":
-            cities_to_work_on.append(montreal)
-    """
-    
     cold_weather = joined_data_selected.filter(
         joined_data_selected['T_label'] == 'cold'
     )

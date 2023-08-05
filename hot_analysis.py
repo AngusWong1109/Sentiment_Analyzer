@@ -71,60 +71,7 @@ def main():
     joined_data = joined_data.sort(['year', 'month', 'day'], ascending=[True, True, True])
     joined_data = joined_data.dropna()
     joined_data = joined_data.cache()
-    
-    """ 
-    nyc = joined_data.filter((joined_data['city'] == "nyc"))
-    la = joined_data.filter((joined_data['city'] == "LosAngeles"))
-    boston = joined_data.filter((joined_data['city'] == "boston"))
-    chicago = joined_data.filter((joined_data['city'] == "chicago"))
-    seattle = joined_data.filter((joined_data['city'] == "Seattle"))
-    atlanta = joined_data.filter((joined_data['city'] == "Atlanta"))
-    sf = joined_data.filter((joined_data['city'] == "sanfrancisco"))
-    toronto = joined_data.filter((joined_data['city'] == "toronto"))
-    vancouver = joined_data.filter((joined_data['city'] == "vancouver"))
-    calgary = joined_data.filter((joined_data['city'] == "Calgary"))
-    montreal = joined_data.filter((joined_data['city'] == "montreal"))
-    
-    for i in argv:
-        if i == "vancouver":
-            cities_to_work_on.append(vancouver)
-        elif i == "nyc":
-            cities_to_work_on.append(nyc)
-        elif i == "la":
-            cities_to_work_on.append(la)
-        elif i == "boston":
-            cities_to_work_on.append(boston)
-        elif i == "chicago":
-            cities_to_work_on.append(chicago)
-        elif i == "seattle":
-            cities_to_work_on.append(seattle)
-        elif i == "atlanta":
-            cities_to_work_on.append(atlanta)
-        elif i == "sf":
-            cities_to_work_on.append(sf)
-        elif i == "toronto":
-            cities_to_work_on.append(toronto)
-        elif i == "calgary":
-            cities_to_work_on.append(calgary)
-        elif i == "montreal":
-            cities_to_work_on.append(montreal)
-            
-    for city in cities_to_work_on:
-        positive_post = city.filter(
-            city['sentiment'] == 'positive'
-        )
-        negative_post = city.filter(
-            city['sentiment'] == 'negative'
-        )
-        neutral_post = city.filter(
-            city['sentiment'] == 'neutral'
-        )
-        hot_weather = city.filter(
-            city['T_label'] == 'hot'
-        )
-    
-    """
-    
+
     cold_weather = joined_data.filter(
         joined_data['T_label'] == 'cold'
     )
