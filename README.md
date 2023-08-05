@@ -2,9 +2,9 @@
 library required: numpy, pandas, sys, scipy, matplotlib, sklearn, pyspark.sql, pyspark.ml, statsmodels, vaderSentiment
 
 ### Step to work on the **whole** dataset on cluster:
-1. Execute get_subreddit_comments.py by code: `spark-submit get_subreddit_comments.py`
-2. Execute get_weather_data.py by code: `spark-submit get_weather_data.py`
-3. Execute setup_city_subreddits.py by code: `spark-submit setup_city_subreddits.py `
+1. To get city subreddit data: Execute get_subreddit_comments.py by code: `spark-submit get_subreddit_comments.py`
+2. To get weather station data: Execute get_weather_data.py by code: `spark-submit get_weather_data.py`
+3. To split subreddit data into city files: Execute setup_city_subreddits.py by code: `spark-submit setup_city_subreddits.py `
 4. Run analysis:
     - Execute rain_analysis.py by code: `spark-submit rain_analysis.py whole`
     - Execute snow_analysis.py by code: `spark-submit snow_analysis.py whole`
