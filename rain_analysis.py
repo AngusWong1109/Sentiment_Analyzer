@@ -60,7 +60,7 @@ def main():
     reddit_sample_filepath = 'sample_dataset/reddit_output/part-*'
     # print(reddit_path, weather_path)
 
-    if argv[1] == 'whole':
+    if sys.argv[1] == 'whole':
         reddit_data = spark.read.json(reddit_path, schema=comments_schema)
         weather_data = spark.read.csv(weather_path, schema=weather_schema)
     else:
@@ -128,8 +128,8 @@ def main():
     plt.xlabel("# of positive reddit comments (daily)")
     plt.ylabel("Amount of daily rain (in mm)")
     plt.title("Positive Sentiment & Rain Correlation")
-    # plt.semilogx()
-    # plt.semilogy()
+    plt.semilogx()
+    plt.semilogy()
 
 
     # Plot 2
@@ -139,8 +139,8 @@ def main():
     plt.xlabel("# of negative reddit comments (daily)")
     plt.ylabel("Amount of daily rain (in mm)")
     plt.title("Negative Sentiment & Rain Correlation")
-    # plt.semilogx()
-    # plt.semilogy()
+    plt.semilogx()
+    plt.semilogy()
 
     # Plot 3
     plt.subplot(1,3,3)
@@ -149,8 +149,8 @@ def main():
     plt.xlabel("# of neutral reddit comments (daily)")
     plt.ylabel("Amount of daily rain (in mm)")
     plt.title("Neutral Sentiment & Rain Correlation")
-    # plt.semilogx()
-    # plt.semilogy()
+    plt.semilogx()
+    plt.semilogy()
 
 
     # plt.legend(['positive','negative','neutral'])
@@ -231,6 +231,6 @@ def main():
     
 
 if __name__=='__main__':
-    # city = sys.argv[1]
+    # dataset = sys.argv[1]
     # out_directory = sys.argv[2]
     main()
